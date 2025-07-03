@@ -3,8 +3,10 @@ start:
     mov ax, 07C0h
     mov ds, ax
 
-    jmp setup_game
+    jmp simple_animation
 
+simple_animation:
+    
 ;constants
 
 

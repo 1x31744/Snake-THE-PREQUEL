@@ -4,16 +4,87 @@ start:
     mov ax, 0900h
     mov ds, ax
 
-    call refresh_screen
-
     ; set up head of snake
     mov byte [snake_x], 10
     mov byte [snake_y], 5
 
-    jmp $
+.main_loop:
+    call refresh_screen
+    jmp .main_loop
+
+get_random_number:
+    mov ah, 00h
+    int 1Ah
+
+    ;move time to ax in order to perfom division
+    mov ax, dx
+
+    ;bx will contain max number
+    ;horizontal = 78
+    ;vertical = 23
+    xor dx, dx
+    div bx
+
+    add dl, 1
+    ret
 
 game_logic:
-    ;move snake based on direction
+; Drain the buffer to get the most recent key
+.read_keys:
+    mov ah, 01h        ; Check if key available
+    int 16h
+    jz .no_keys        ; No key in buffer? skip
+
+    ; Get key from buffer
+    mov ah, 00h
+    int 16h            ; AL = ASCII char
+
+    ; store last key seen
+    mov byte [latest_key], al
+    jmp .read_keys     ; keep draining
+
+.no_keys:
+    mov al, [latest_key]
+    cmp al, 'w'
+    je .go_up
+    cmp al, 's'
+    je .go_down
+    cmp al, 'a'
+    je .go_left
+    cmp al, 'd'
+    je .go_right
+
+.go_up:
+    cmp byte [snake_vertical_direction], 1
+    je .finish_input
+    mov byte [snake_vertical_direction], -1
+    mov byte [snake_horizontal_direction], 0
+    jmp .finish_input
+
+.go_down:
+    cmp byte [snake_vertical_direction], -1
+    je .finish_input
+    mov byte [snake_vertical_direction], 1
+    mov byte [snake_horizontal_direction], 0
+    jmp .finish_input
+
+.go_left:
+    cmp byte [snake_horizontal_direction], 1
+    je .finish_input
+    mov byte [snake_horizontal_direction], -1
+    mov byte [snake_vertical_direction], 0
+    jmp .finish_input
+
+.go_right:
+    cmp byte [snake_horizontal_direction], -1
+    je .finish_input
+    mov byte [snake_horizontal_direction], 1
+    mov byte [snake_vertical_direction], 0
+
+.finish_input:
+
+
+    ;set up loop of snake movement
     mov cx, [snake_body_count]
     mov si, 0
 
@@ -22,6 +93,28 @@ game_logic:
     ret
 
 .move_snake:
+
+    ;move snake
+
+    cmp si, 0
+    jne .body_logic
+.head_logic
+    mov al, [snake_horizontal_direction]
+    mov ah, [snake_vertical_direction]
+    add byte [snake_x + si], al
+    add byte [snake_y + si], ah
+
+    mov bl, [snake_x]
+    mov bh, [snake_y]
+
+    mov byte [snake_head_x],  
+
+    jmp .draw_logic
+
+.body_logic
+
+.draw_logic
+
     ;draw snake
     mov ah, 02h
     mov dl, [snake_x + si]
@@ -29,20 +122,12 @@ game_logic:
     mov bh, 0
     int 10h
 
-    mov ah, 0Eh
+    mov ah, 09h
     mov al, '#'
+    mov bh, 0
+    mov bl, 0x07 ; white on black
+    mov cx, 1
     int 10h
-
-    ;move snake
-    add byte [snake_x + si], snake_horizontal_direction
-    add byte [snake_y + si], snake_vertical_direction
-
-    ;time delay
-
-    mov ah, 86h
-    mov cx, 0x0001      ; high 16 bits of 0x000186A0
-    mov dx, 0x86A0      ; low 16 bits
-    int 15h
 
     inc si
     loop .move_snake
@@ -55,14 +140,22 @@ refresh_screen:
     call draw_horizontal_borders
 
     call draw_vertical_borders
+
+    call game_logic
+
+    ;time delay
+
+    mov ah, 86h
+    mov cx, 0x0011      ; high 16 bits of 0x000186A0    ;set cursor to top left
+    mov dx, 0x86A0      ; low 16 bits
+    int 15h
+
     ;set cursor to top left
     mov ah, 02h
     mov bh, 0
     mov dl, 0
     mov dh, 0
     int 10h
-
-    call game_logic
 
     ret
 
@@ -152,6 +245,14 @@ snake_body_count db 1
 
 snake_vertical_direction db 0
 snake_horizontal_direction db 1
+
+previous_snake_part_x db 0
+previous_snake_part_y db 0
+
+snake_head_x db 0
+snake_head_y db 0
+
+latest_key db 0
 
 ;game logic
 times 2048-($-$$) db 0

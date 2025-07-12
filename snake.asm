@@ -7,6 +7,8 @@ start:
     ; set up head of snake
     mov byte [snake_x], 10
     mov byte [snake_y], 5
+    mov byte [snake_x + 1], 10
+    mov byte [snake_y + 1], 4
 
 .main_loop:
     call refresh_screen
@@ -82,21 +84,13 @@ game_logic:
     mov byte [snake_vertical_direction], 0
 
 .finish_input:
-
-
-    ;set up loop of snake movement
-    mov cx, [snake_body_count]
     mov si, 0
 
-    call .move_snake
-
-    ret
-
-.move_snake:
-
+.snake_loop:
     ;move snake
 
     cmp si, 0
+    jmp .head_logic
     jne .body_logic
 .head_logic
     mov al, [snake_horizontal_direction]
@@ -107,11 +101,28 @@ game_logic:
     mov bl, [snake_x]
     mov bh, [snake_y]
 
-    mov byte [snake_head_x],  
+    mov byte [snake_head_x], bl
+    mov byte [snake_head_y], bh
+    mov byte [previous_snake_part_x], bl
+    mov byte [previous_snake_part_y], bh
 
     jmp .draw_logic
 
 .body_logic
+    ; store current part's coords in temp
+    mov al, [snake_x + si]
+    mov ah, [snake_y + si]
+
+    ; move previous part into current
+    mov bl, [previous_snake_part_x]
+    mov bh, [previous_snake_part_y]
+    mov byte [snake_x + si], bl
+    mov byte [snake_y + si], bh
+
+    ; now update previous to the old value of this segment
+    mov byte [previous_snake_part_x], al
+    mov byte [previous_snake_part_y], ah
+
 
 .draw_logic
 
@@ -130,7 +141,8 @@ game_logic:
     int 10h
 
     inc si
-    loop .move_snake
+    cmp si, [snake_body_count]
+    jbe .snake_loop    ; jump if si <= cl
 
     ret
 
@@ -241,7 +253,7 @@ MAX_SNAKE_SIZE equ 64
 ;variables
 snake_x times MAX_SNAKE_SIZE db 0
 snake_y times MAX_SNAKE_SIZE db 0
-snake_body_count db 1
+snake_body_count db 0
 
 snake_vertical_direction db 0
 snake_horizontal_direction db 1

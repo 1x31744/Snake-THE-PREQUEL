@@ -88,10 +88,16 @@ game_logic:
     mov si, 0
 
 .snake_loop:
-    jmp .head_logic
+    ;jmp .head_logic
     cmp si, 0
     jne .body_logic
 .head_logic
+
+    mov bl, [snake_x]
+    mov bh, [snake_y]
+    mov byte [previous_snake_part_x], bl
+    mov byte [previous_snake_part_y], bh
+
     mov al, [snake_horizontal_direction]
     mov ah, [snake_vertical_direction]
     add byte [snake_x + si], al
@@ -102,8 +108,6 @@ game_logic:
 
     mov byte [snake_head_x], bl
     mov byte [snake_head_y], bh
-    mov byte [previous_snake_part_x], bl
-    mov byte [previous_snake_part_y], bh
 
     jmp .draw_logic
 
@@ -255,7 +259,7 @@ MAX_SNAKE_SIZE equ 64
 ;variables
 snake_x times MAX_SNAKE_SIZE db 0
 snake_y times MAX_SNAKE_SIZE db 0
-snake_body_count db 3
+snake_body_count db 4
 
 snake_vertical_direction db 0
 snake_horizontal_direction db 1

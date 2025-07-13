@@ -9,6 +9,7 @@ start:
     mov byte [snake_y], 5
     mov byte [snake_x + 1], 10
     mov byte [snake_y + 1], 4
+    mov byte [snake_body_count], 2
 
 .main_loop:
     call refresh_screen
@@ -87,10 +88,8 @@ game_logic:
     mov si, 0
 
 .snake_loop:
-    ;move snake
-
-    cmp si, 0
     jmp .head_logic
+    cmp si, 0
     jne .body_logic
 .head_logic
     mov al, [snake_horizontal_direction]
@@ -141,8 +140,11 @@ game_logic:
     int 10h
 
     inc si
-    cmp si, [snake_body_count]
-    jbe .snake_loop    ; jump if si <= cl
+
+    xor cx, cx
+    mov cl, [snake_body_count]
+    cmp si, cx
+    jb .snake_loop
 
     ret
 
@@ -253,7 +255,7 @@ MAX_SNAKE_SIZE equ 64
 ;variables
 snake_x times MAX_SNAKE_SIZE db 0
 snake_y times MAX_SNAKE_SIZE db 0
-snake_body_count db 0
+snake_body_count db 3
 
 snake_vertical_direction db 0
 snake_horizontal_direction db 1

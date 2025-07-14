@@ -7,9 +7,7 @@ start:
     ; set up head of snake
     mov byte [snake_x], 10
     mov byte [snake_y], 5
-    mov byte [snake_x + 1], 10
-    mov byte [snake_y + 1], 4
-    mov byte [snake_body_count], 2
+    mov byte [snake_body_count], 64
 
 .main_loop:
     call refresh_screen
@@ -91,25 +89,46 @@ game_logic:
     ;jmp .head_logic
     cmp si, 0
     jne .body_logic
-.head_logic
+.head_logic:
 
     mov bl, [snake_x]
     mov bh, [snake_y]
     mov byte [previous_snake_part_x], bl
     mov byte [previous_snake_part_y], bh
 
+    ; Move head
     mov al, [snake_horizontal_direction]
     mov ah, [snake_vertical_direction]
     add byte [snake_x + si], al
     add byte [snake_y + si], ah
 
+    ; Load new head position
     mov bl, [snake_x]
     mov bh, [snake_y]
 
     mov byte [snake_head_x], bl
     mov byte [snake_head_y], bh
 
+    ; ---- BOUNDARY CHECK ----
+
+    ; X out of bounds?
+    cmp bl, 79          ; is x >= 79?
+    jae end            ; jump if x > 78 (right wall)
+
+    cmp bl, 1           ; is x < 0?
+    jb end             ; jump if wrapped below 0 (left wall)
+
+    ; Y out of bounds?
+    cmp bh, 24          ; is y >= 24?
+    jae end            ; jump if y > 23 (bottom)
+
+    cmp bh, 1         ; is y < 0?
+    jb end             ; jump if wrapped below 0 (top)
+
+    ; ------------------------
+
     jmp .draw_logic
+
 
 .body_logic
     ; store current part's coords in temp
@@ -126,6 +145,18 @@ game_logic:
     mov byte [previous_snake_part_x], al
     mov byte [previous_snake_part_y], ah
 
+    cmp bl, [snake_head_x]
+    jne .continue
+    cmp bh, [snake_head_y]
+    jne .continue
+
+    jmp end
+    
+
+.continue
+
+.apple_logic
+    
 
 .draw_logic
 
@@ -164,7 +195,7 @@ refresh_screen:
     ;time delay
 
     mov ah, 86h
-    mov cx, 0x0011      ; high 16 bits of 0x000186A0    ;set cursor to top left
+    mov cx, 0x0001     ; high 16 bits of 0x000186A0    ;set cursor to top left
     mov dx, 0x86A0      ; low 16 bits
     int 15h
 
@@ -178,28 +209,60 @@ refresh_screen:
     ret
 
 draw_horizontal_borders:
-    ;setting the cursor position for top bar
-
+    ; Draw top border (row 0)
+    mov cx, 79              ; total columns = 79 (0 to 78)
+    xor dl, dl              ; dl = 0 (start column)
+    mov dh, 0               ; row 0 (top)
+.draw_top_loop:
+    ; Set cursor position
     mov ah, 02h
     mov bh, 0
-    mov dh, 0
-    mov dl, 0
     int 10h
 
-    mov si, horizontal_border_string
-    call print_string
+    ; Choose character
+    mov ah, 0x0E
+    mov al, '-'            ; default character
+    cmp dl, 0
+    je .top_edge
+    cmp dl, 78
+    je .top_edge
+    jmp .top_draw
+.top_edge:
+    mov al, '+'
+.top_draw:
+    int 10h
 
-    ;setting the cursor position for bottom bar
+    inc dl
+    loop .draw_top_loop
+
+    ; Draw bottom border (row 24)
+    mov cx, 79
+    xor dl, dl              ; dl = 0 (start column)
+    mov dh, 24              ; row 24 (bottom)
+.draw_bottom_loop:
+    ; Set cursor position
     mov ah, 02h
     mov bh, 0
-    mov dl, 0
-    mov dh, 18h
     int 10h
-    
-    mov si, horizontal_border_string
-    call print_string
+
+    ; Choose character
+    mov ah, 0x0E
+    mov al, '-'
+    cmp dl, 0
+    je .bottom_edge
+    cmp dl, 78
+    je .bottom_edge
+    jmp .bottom_draw
+.bottom_edge:
+    mov al, '+'
+.bottom_draw:
+    int 10h
+
+    inc dl
+    loop .draw_bottom_loop
 
     ret
+
 
 draw_vertical_borders:
     mov cx, 23
@@ -251,6 +314,9 @@ clear_screen:
     mov dx, 184Fh     ; lower-right corner (row=24, col=79)
     int 10h
     ret
+
+end:
+    jmp $
     
 ;constants
 horizontal_border_string db '+-----------------------------------------------------------------------------+', 0
@@ -259,7 +325,7 @@ MAX_SNAKE_SIZE equ 64
 ;variables
 snake_x times MAX_SNAKE_SIZE db 0
 snake_y times MAX_SNAKE_SIZE db 0
-snake_body_count db 4
+snake_body_count db 0
 
 snake_vertical_direction db 0
 snake_horizontal_direction db 1

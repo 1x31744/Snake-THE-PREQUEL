@@ -3,11 +3,15 @@
 start:
     mov ax, 0900h
     mov ds, ax
+    mov ss, ax
+    mov sp, 0FFFFh
 
     ; set up head of snake
     mov byte [snake_x], 10
     mov byte [snake_y], 5
     mov byte [snake_body_count], 64
+    mov byte [apple_x], 20
+    mov byte [apple_y], 15
 
 .main_loop:
     call refresh_screen
@@ -154,10 +158,6 @@ game_logic:
     
 
 .continue
-
-.apple_logic
-    
-
 .draw_logic
 
     ;draw snake
@@ -171,6 +171,20 @@ game_logic:
     mov al, '#'
     mov bh, 0
     mov bl, 0x07 ; white on black
+    mov cx, 1
+    int 10h
+
+    ;draw apple
+    mov ah, 02h
+    mov dl, [apple_x]
+    mov dh, [apple_y]
+    mov bh, 0
+    int 10h
+
+    mov ah, 09h 
+    mov al, '*'
+    mov bh, 0
+    mov bl, 0x07
     mov cx, 1
     int 10h
 
@@ -319,7 +333,7 @@ end:
     jmp $
     
 ;constants
-horizontal_border_string db '+-----------------------------------------------------------------------------+', 0
+;horizontal_border_string db '+-----------------------------------------------------------------------------+', 0
 MAX_SNAKE_SIZE equ 64
 
 ;variables
@@ -336,7 +350,7 @@ previous_snake_part_y db 0
 snake_head_x db 0
 snake_head_y db 0
 
-latest_key db 0
+apple_x db 0
+apple_y db 0
 
-;game logic
-times 2048-($-$$) db 0
+latest_key db 0

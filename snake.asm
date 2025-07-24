@@ -9,7 +9,7 @@ start:
     ; set up head of snake
     mov byte [snake_x], 10
     mov byte [snake_y], 5
-    mov byte [snake_body_count], 64
+    mov byte [snake_body_count], 2
     mov byte [apple_x], 20
     mov byte [apple_y], 15
 
@@ -31,6 +31,7 @@ get_random_number:
     div bx
 
     add dl, 1
+    ;dl will contain random number
     ret
 
 game_logic:
@@ -130,6 +131,27 @@ game_logic:
     jb end             ; jump if wrapped below 0 (top)
 
     ; ------------------------
+
+    ; ---- APPLE CHECK ----
+    cmp bl, [apple_x]
+    jne .no_apple
+    cmp bh, [apple_y]
+    jne .no_apple
+
+    mov cl, [snake_body_count]
+    add cl, 1
+    mov byte [snake_body_count], cl
+
+    mov bx, 78
+    call get_random_number
+    mov byte [apple_x], dl
+
+    mov bx, 23
+    call get_random_number
+    mov byte [apple_y], dl
+    
+
+.no_apple
 
     jmp .draw_logic
 
